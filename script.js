@@ -64,6 +64,181 @@ document.querySelectorAll('.service-card').forEach(card => {
     observer.observe(card);
 });
 
+// ===== PORTFOLIO SLIDER FUNCTIONALITY =====
+let currentSlide = 0;
+const portfolioTrack = document.getElementById('portfolioTrack');
+const portfolioItems = document.querySelectorAll('.portfolio-item');
+const totalSlides = portfolioItems.length;
+
+// Calculate how many items to show based on screen size
+function getItemsToShow() {
+    if (window.innerWidth <= 480) return 1;
+    if (window.innerWidth <= 768) return 2;
+    return 3;
+}
+
+function updateSlider() {
+    const itemsToShow = getItemsToShow();
+    const itemWidth = portfolioItems[0].offsetWidth + 32; // 32px for gap
+    const maxSlide = Math.max(0, totalSlides - itemsToShow);
+    
+    // Ensure currentSlide doesn't exceed maxSlide
+    currentSlide = Math.min(currentSlide, maxSlide);
+    
+    const translateX = -currentSlide * itemWidth;
+    portfolioTrack.style.transform = `translateX(${translateX}px)`;
+    
+    // Update button states
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    
+    prevBtn.style.opacity = currentSlide === 0 ? '0.5' : '1';
+    nextBtn.style.opacity = currentSlide >= maxSlide ? '0.5' : '1';
+}
+
+// Portfolio navigation
+document.getElementById('prevBtn').addEventListener('click', function() {
+    if (currentSlide > 0) {
+        currentSlide--;
+        updateSlider();
+    }
+});
+
+document.getElementById('nextBtn').addEventListener('click', function() {
+    const itemsToShow = getItemsToShow();
+    const maxSlide = Math.max(0, totalSlides - itemsToShow);
+    
+    if (currentSlide < maxSlide) {
+        currentSlide++;
+        updateSlider();
+    }
+});
+
+// Update slider on window resize
+window.addEventListener('resize', function() {
+    updateSlider();
+});
+
+// Initialize slider
+updateSlider();
+
+// ===== AUTO-PLAY PORTFOLIO SLIDER (Optional) =====
+let autoPlayInterval;
+
+function startAutoPlay() {
+    autoPlayInterval = setInterval(function() {
+        const itemsToShow = getItemsToShow();
+        const maxSlide = Math.max(0, totalSlides - itemsToShow);
+        
+        if (currentSlide < maxSlide) {
+            currentSlide++;
+        } else {
+            currentSlide = 0;
+        }
+        updateSlider();
+    }, 4000); // Change slide every 4 seconds
+}
+
+function stopAutoPlay() {
+    clearInterval(autoPlayInterval);
+}
+
+// Start auto-play
+startAutoPlay();
+
+// Pause auto-play on hover
+const portfolioSlider = document.querySelector('.portfolio-slider');
+portfolioSlider.addEventListener('mouseenter', stopAutoPlay);
+portfolioSlider.addEventListener('mouseleave', startAutoPlay);
+
+// ===== CONTACT FORM HANDLING =====
+const contactForm = document.getElementById('contactForm');
+
+contactForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Get form data
+    const formData = new FormData(contactForm);
+    const name = formData.get('name');
+    const email = formData.get('email');
+    const subject = formData.get('subject');
+    const message = formData.get('message');
+    
+    // Simple validation
+    if (!name || !email || !subject || !message) {
+        showNotification('Please fill in all fields', 'error');
+        return;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showNotification('Please enter a valid email address', 'error');
+        return;
+    }
+    
+    // Simulate form submission
+    const submitBtn = contactForm.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    submitBtn.textContent = 'Sending...';
+    submitBtn.disabled = true;
+    
+    // Simulate API call
+    setTimeout(function() {
+        showNotification('Message sent successfully! I\'ll get back to you soon.', 'success');
+        contactForm.reset();
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }, 2000);
+});
+
+// ===== NOTIFICATION SYSTEM =====
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 300px;
+        font-weight: 500;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 5000);
+}
+
 // ===== PARALLAX EFFECT FOR FLOATING ELEMENTS =====
 window.addEventListener('scroll', function() {
     const scrolled = window.pageYOffset;
@@ -86,11 +261,21 @@ document.querySelectorAll('.btn-primary, .btn-secondary').forEach(button => {
         const x = e.clientX - rect.left - size / 2;
         const y = e.clientY - rect.top - size / 2;
         
+        ripple.style.cssText = `
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        `;
+        
         ripple.style.width = ripple.style.height = size + 'px';
         ripple.style.left = x + 'px';
         ripple.style.top = y + 'px';
-        ripple.classList.add('ripple');
         
+        this.style.position = 'relative';
+        this.style.overflow = 'hidden';
         this.appendChild(ripple);
         
         // Remove ripple after animation
@@ -100,25 +285,21 @@ document.querySelectorAll('.btn-primary, .btn-secondary').forEach(button => {
     });
 });
 
-// ===== TYPING ANIMATION FOR HERO TITLE =====
-function typeWriter(element, text, speed = 100) {
-    let i = 0;
-    element.innerHTML = '';
-    
-    function type() {
-        if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(type, speed);
+// Add ripple animation CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
         }
     }
-    
-    type();
-}
+`;
+document.head.appendChild(style);
 
 // ===== SCROLL REVEAL ANIMATION =====
 function revealOnScroll() {
-    const reveals = document.querySelectorAll('.service-card');
+    const reveals = document.querySelectorAll('.service-card, .portfolio-item, .contact-card');
     
     reveals.forEach(reveal => {
         const windowHeight = window.innerHeight;
@@ -154,19 +335,6 @@ const throttledScroll = throttle(function() {
 
 window.addEventListener('scroll', throttledScroll);
 
-// ===== FORM HANDLING (for future contact forms) =====
-function handleFormSubmit(formData) {
-    // This function can be expanded when adding contact forms
-    console.log('Form submitted:', formData);
-    
-    // Add success animation or feedback here
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({ success: true, message: 'Message sent successfully!' });
-        }, 1000);
-    });
-}
-
 // ===== ACCESSIBILITY IMPROVEMENTS =====
 // Add keyboard navigation support
 document.addEventListener('keydown', function(e) {
@@ -180,6 +348,13 @@ document.addEventListener('keydown', function(e) {
             navMenu.classList.remove('active');
         }
     }
+    
+    // Arrow keys for portfolio navigation
+    if (e.key === 'ArrowLeft') {
+        document.getElementById('prevBtn').click();
+    } else if (e.key === 'ArrowRight') {
+        document.getElementById('nextBtn').click();
+    }
 });
 
 // ===== PRELOADER (optional) =====
@@ -192,11 +367,20 @@ window.addEventListener('load', function() {
             preloader.style.display = 'none';
         }, 500);
     }
+    
+    // Initialize animations
+    revealOnScroll();
 });
 
 // ===== CONSOLE WELCOME MESSAGE =====
 console.log(`
 🚀 Welcome to DevCraft Portfolio
 Built with modern web technologies
-Contact: your-email@example.com
+Contact: hello@devcraft.com
+
+Portfolio Instructions:
+- Replace placeholder images in portfolio section with your work
+- Update project titles, descriptions, and links
+- Add your profile image in the about section
+- Customize contact information
 `);
